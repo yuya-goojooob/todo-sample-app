@@ -1,17 +1,15 @@
 import { useReducer, useEffect, useMemo } from 'react'
 import type { TodoState, TodoAction, Todo } from '../types'
 
-const STORAGE_KEY = 'todo-app-todos'
-
 const PRIORITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 }
 
 function generateId(): string {
   return Math.random().toString(36).substring(2) + Date.now().toString(36)
 }
 
-function loadFromStorage(): Todo[] {
+function loadFromStorage(key: string): Todo[] {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY)
+    const stored = localStorage.getItem(key)
     return stored ? (JSON.parse(stored) as Todo[]) : []
   } catch {
     return []
@@ -61,17 +59,23 @@ function todoReducer(state: TodoState, action: TodoAction): TodoState {
   }
 }
 
-export function useTodos() {
-  const [state, dispatch] = useReducer(todoReducer, {
-    todos: loadFromStorage(),
-    filter: 'all',
-    sort: 'createdAt',
-    search: '',
-  })
+export function useTodos(userId: string) {
+  const storageKey = `todo-app-todos-${userId}`
+
+  const [state, dispatch] = useReducer(
+    todoReducer,
+    storageKey,
+    (key): TodoState => ({
+      todos: loadFromStorage(key),
+      filter: 'all',
+      sort: 'createdAt',
+      search: '',
+    }),
+  )
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.todos))
-  }, [state.todos])
+    localStorage.setItem(storageKey, JSON.stringify(state.todos))
+  }, [state.todos, storageKey])
 
   const filteredTodos = useMemo(() => {
     let result = state.todos
